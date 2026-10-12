@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NoteCraft Studio — Handwritten & Code Notes Studio</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+
+    <!-- Google Fonts: Handwriting, Code & UI -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Fira+Code:wght@400;500&family=Indie+Flower&family=Inter:wght@300;400;500;600;700&family=Kalam:wght@400;700&family=Patrick+Hand&family=Shadows+Into+Light&display=swap" rel="stylesheet">
+
+    <!-- Prism Syntax Highlighting CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+
+    <!-- Application Stylesheet -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- Third-Party PDF Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+
+    <!-- Prism Syntax Highlighting Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js" defer></script>
+
+    <!-- Application JavaScript Modules -->
+    <script src="js/pdf-exporter.js" defer></script>
+    <script src="js/app.js" defer></script>
+</head>
+<body>
+
+    <!-- Header / Navbar -->
+    <header>
+        <div class="logo">
+            ✏️ <span>NoteCraft Studio</span>
+        </div>
+        <div class="btn-group">
+            <button class="btn" id="btnUndo" title="Undo (Ctrl+Z)" disabled>↩️ Undo</button>
+            <button class="btn" id="btnRedo" title="Redo (Ctrl+Y)" disabled>↪️ Redo</button>
+            <button class="btn" id="btnReset">🔄 Reset Document</button>
+            <button class="btn" id="btnExportHtml">📄 Export HTML</button>
+            <button class="btn btn-primary" id="btnExportPdf">📥 Export PDF</button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="workspace">
+        
+        <!-- Controls Sidebar -->
+        <aside class="controls-panel">
+            <div>
+                <div class="section-title">🎨 Aesthetics & Styling</div>
+                <div class="control-card">
+                    <div class="form-field">
+                        <label for="fontSelect">Handwriting Font Style</label>
+                        <select id="fontSelect">
+                            <option value="'Patrick Hand', cursive">Patrick Hand (Clean Student)</option>
+                            <option value="'Caveat', cursive">Caveat (Flowing Pen)</option>
+                            <option value="'Kalam', cursive">Kalam (Bold Marker)</option>
+                            <option value="'Indie Flower', cursive">Indie Flower (Casual)</option>
+                            <option value="'Shadows Into Light', cursive">Shadows Into Light (Fine Tip)</option>
+                        </select>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="form-field">
+                            <label for="inkSelect">Ink Color</label>
+                            <select id="inkSelect">
+                                <option value="#1e3a8a">Midnight Blue</option>
+                                <option value="#111827">Classic Black</option>
+                                <option value="#065f46">Emerald Green</option>
+                                <option value="#701a75">Mulberry Purple</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label for="paperSelect">Paper Texture</label>
+                            <select id="paperSelect">
+                                <option value="pattern-lined">College Lined</option>
+                                <option value="pattern-grid">Engineering Grid</option>
+                                <option value="pattern-dots">Dot Grid</option>
+                                <option value="pattern-plain">Blank Parchment</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">➕ Quick Append (At Bottom)</div>
+                <div class="control-card grid-2">
+                    <button class="btn" data-action="append" data-type="heading">+ Heading</button>
+                    <button class="btn" data-action="append" data-type="paragraph">+ Paragraph</button>
+                    <button class="btn" data-action="append" data-type="bullets">+ Bullet List</button>
+                    <button class="btn" data-action="append" data-type="callout">+ Highlight Box</button>
+                    <button class="btn" data-action="append" data-type="code" style="grid-column: span 2;">💻 + Code Snippet Block</button>
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">🖼️ Upload Diagram / Image</div>
+                <div class="control-card">
+                    <div class="form-field">
+                        <label for="imageUploader">Select Diagram or Paste Image (`Ctrl+V`)</label>
+                        <input type="file" id="imageUploader" accept="image/*">
+                    </div>
+                </div>
+            </div>
+
+            <div class="hint-box">
+                💡 <b>Undo & Redo Shortcuts:</b><br>
+                Press <b>Ctrl+Z</b> to Undo and <b>Ctrl+Y</b> (or <b>Ctrl+Shift+Z</b>) to Redo any changes!
+            </div>
+        </aside>
+
+        <!-- Handwritten Canvas Area -->
+        <main class="canvas-area" id="canvasArea">
+            
+            <!-- Floating Context Toolbar -->
+            <div id="floatingToolbar">
+                <button data-action="insert" data-type="heading">+ Heading</button>
+                <button data-action="insert" data-type="paragraph">+ Text</button>
+                <button data-action="insert" data-type="bullets">+ List</button>
+                <button data-action="insert" data-type="callout">+ Box</button>
+                <button data-action="insert" data-type="code">💻 + Code</button>
+                <span class="toolbar-divider">|</span>
+                <button id="btnMoveUp">▲ Up</button>
+                <button id="btnMoveDown">▼ Down</button>
+                <button id="btnDeleteBlock" class="btn-danger">🗑️</button>
+            </div>
+
+            <!-- Page Container -->
+            <div id="noteDocument" class="note-page pattern-lined">
+                
+                <div class="note-block">
+                    <h1 contenteditable="true">📌 STUDY NOTES: ECOSYSTEMS & CODE</h1>
+                </div>
+
+                <div class="note-block">
+                    <div class="meta-header">
+                        <span contenteditable="true">UNIT: 01</span>
+                        <span contenteditable="true">SUBJECT: Environmental Science</span>
+                        <span contenteditable="true">TOPIC: Ecosystem Dynamics</span>
+                    </div>
+                </div>
+
+                <div class="note-block">
+                    <p contenteditable="true"><strong>🎯 Core Objective:</strong> Understand how living organisms interact with each other and their physical environment to form a functional, self-sustaining unit governed by energy flow and nutrient cycling.</p>
+                </div>
+
+                <div class="note-block">
+                    <h2 contenteditable="true">1. Concept Breakdown & Key Terms</h2>
+                </div>
+
+                <div class="note-block">
+                    <ul>
+                        <li contenteditable="true"><strong>Ecosystem:</strong> Functional unit where living (biotic) components interact with physical (abiotic) environments.</li>
+                        <li contenteditable="true"><strong>Biotic Factors:</strong> Living entities including plants, animals, fungi, and bacteria.</li>
+                        <li contenteditable="true"><strong>Abiotic Factors:</strong> Non-living chemical/physical factors like sunlight, temperature, soil, and pH.</li>
+                    </ul>
+                </div>
+
+                <div class="note-block">
+                    <h2 contenteditable="true">2. Computational Formula Code Snippet</h2>
+                </div>
+
+                <div class="note-block">
+                    <div class="code-block-container">
+                        <div class="code-header">
+                            <select class="code-lang-select">
+                                <option value="python" selected>Python</option>
+                                <option value="javascript">JavaScript</option>
+                                <option value="cpp">C / C++</option>
+                                <option value="java">Java</option>
+                                <option value="html">HTML / CSS</option>
+                                <option value="sql">SQL</option>
+                                <option value="go">Go</option>
+                                <option value="rust">Rust</option>
+                                <option value="typescript">TypeScript</option>
+                                <option value="bash">Bash / Shell</option>
+                            </select>
+                            <span style="color:#94a3b8; font-size:12px;">•••</span>
+                        </div>
+                        <pre class="code-editor language-python" contenteditable="true"><code># Formula: Net Primary Productivity (NPP) = GPP - Respiration
+def calculate_npp(gross_primary_productivity, respiration_loss):
+    """Calculates net energy available to herbivores."""
+    net_productivity = gross_primary_productivity - respiration_loss
+    return f"{net_productivity} kcal/m²/yr"
+
+print(calculate_npp(10000, 4500))</code></pre>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+    </div>
+
+</body>
+</html>
