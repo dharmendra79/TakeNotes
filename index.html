@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NoteCraft Studio — Handwritten & Code Notes Studio</title>
+    <title>NoteCraft Studio — Multi-Page Handwritten & Code Notes Studio</title>
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 
-    <!-- Google Fonts: Handwriting, Code & UI -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Fira+Code:wght@400;500&family=Indie+Flower&family=Inter:wght@300;400;500;600;700&family=Kalam:wght@400;700&family=Patrick+Hand&family=Shadows+Into+Light&display=swap" rel="stylesheet">
@@ -47,7 +47,8 @@
         <div class="btn-group">
             <button class="btn" id="btnUndo" title="Undo (Ctrl+Z)" disabled>↩️ Undo</button>
             <button class="btn" id="btnRedo" title="Redo (Ctrl+Y)" disabled>↪️ Redo</button>
-            <button class="btn" id="btnReset">🔄 Reset Document</button>
+            <button class="btn btn-primary" id="btnSaveDoc">💾 Save Note</button>
+            <button class="btn" id="btnNewDoc">➕ New Note</button>
             <button class="btn" id="btnExportHtml">📄 Export HTML</button>
             <button class="btn btn-primary" id="btnExportPdf">📥 Export PDF</button>
         </div>
@@ -58,6 +59,24 @@
         
         <!-- Controls Sidebar -->
         <aside class="controls-panel">
+            
+            <!-- Local Disk Storage Section -->
+            <div>
+                <div class="section-title">📂 Saved Notes (Local Disk)</div>
+                <div class="control-card">
+                    <div class="form-field">
+                        <label for="currentDocName">Note Identifier / Title</label>
+                        <input type="text" id="currentDocName" value="Ecosystem Dynamics Notes" placeholder="Enter document name...">
+                    </div>
+                    <div class="saved-notes-container">
+                        <label style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">Saved Files List:</label>
+                        <div id="savedNotesList" class="saved-list">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div>
                 <div class="section-title">🎨 Aesthetics & Styling</div>
                 <div class="control-card">
@@ -88,7 +107,7 @@
                                 <option value="pattern-lined">College Lined</option>
                                 <option value="pattern-grid">Engineering Grid</option>
                                 <option value="pattern-dots">Dot Grid</option>
-                                <option value="pattern-plain">Blank Parchment</option>
+                                <option value="pattern-plain">Blank</option>
                             </select>
                         </div>
                     </div>
@@ -96,7 +115,7 @@
             </div>
 
             <div>
-                <div class="section-title">➕ Quick Append (At Bottom)</div>
+                <div class="section-title">➕ Quick Append</div>
                 <div class="control-card grid-2">
                     <button class="btn" data-action="append" data-type="heading">+ Heading</button>
                     <button class="btn" data-action="append" data-type="paragraph">+ Paragraph</button>
@@ -117,8 +136,8 @@
             </div>
 
             <div class="hint-box">
-                💡 <b>Undo & Redo Shortcuts:</b><br>
-                Press <b>Ctrl+Z</b> to Undo and <b>Ctrl+Y</b> (or <b>Ctrl+Shift+Z</b>) to Redo any changes!
+                💡 <b>Local Storage Saved:</b><br>
+                Your notes are saved directly in your browser's local disk memory. You can switch, update, or delete saved notes anytime!
             </div>
         </aside>
 
@@ -140,7 +159,6 @@
 
             <!-- Page Container -->
             <div id="noteDocument" class="note-page pattern-lined">
-                
                 <div class="note-block">
                     <h1 contenteditable="true">📌 STUDY NOTES: ECOSYSTEMS & CODE</h1>
                 </div>
@@ -199,7 +217,6 @@ def calculate_npp(gross_primary_productivity, respiration_loss):
 print(calculate_npp(10000, 4500))</code></pre>
                     </div>
                 </div>
-
             </div>
         </main>
 

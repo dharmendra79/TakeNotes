@@ -1,12 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
     let activeBlock = null;
+    let currentDocId = null;
 
-    // Undo / Redo History Stack Management
+    // Undo / Redo History Stack
     const undoStack = [];
     const redoStack = [];
     const MAX_HISTORY = 50;
     let isHistoryAction = false;
     let inputDebounceTimer = null;
+
+    const STORAGE_KEY = 'notecraft_saved_notes';
 
     const codeSamples = {
         python: `# Formula: Net Primary Productivity (NPP) = GPP - Respiration
@@ -112,15 +115,130 @@ echo "Net Primary Productivity: \${NPP} kcal/m²/yr"`
     const paperSelect = document.getElementById('paperSelect');
     const btnUndo = document.getElementById('btnUndo');
     const btnRedo = document.getElementById('btnRedo');
+    const currentDocNameInput = document.getElementById('currentDocName');
+    const savedNotesList = document.getElementById('savedNotesList');
 
-    // Save Initial History State
+    // -------------------------------------------------------------
+    // LOCAL STORAGE OPERATIONS
+    // -------------------------------------------------------------
+    function getStoredNotes() {
+        try {
+            return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+        } catch (e) {
+            console.error("LocalStorage Error:", e);
+            return {};
+        }
+    }
+
+    function saveNoteToDisk() {
+        const docName = (currentDocNameInput ? currentDocNameInput.value.trim() : '') || 'Untitled Note';
+        const notes = getStoredNotes();
+        
+        if (!currentDocId) {
+            currentDocId = 'doc_' + Date.now();
+        }
+
+        notes[currentDocId] = {
+            id: currentDocId,
+            title: docName,
+            font: fontSelect ? fontSelect.value : '',
+            ink: inkSelect ? inkSelect.value : '',
+            paper: paperSelect ? paperSelect.value : '',
+            htmlContent: noteDocument.innerHTML,
+            updatedAt: new Date().toLocaleString()
+        };
+
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+            renderSavedNotesList();
+            alert(`Saved "${docName}" successfully to local disk!`);
+        } catch (e) {
+            alert('Failed to save note. Local storage space might be full.');
+        }
+    }
+
+    function loadNoteFromDisk(id) {
+        const notes = getStoredNotes();
+        const doc = notes[id];
+        if (!doc) return;
+
+        currentDocId = doc.id;
+        if (currentDocNameInput) currentDocNameInput.value = doc.title;
+        if (fontSelect && doc.font) fontSelect.value = doc.font;
+        if (inkSelect && doc.ink) inkSelect.value = doc.ink;
+        if (paperSelect && doc.paper) paperSelect.value = doc.paper;
+
+        restoreDocumentState(doc.htmlContent);
+        updateStyles();
+        renderSavedNotesList();
+    }
+
+    function deleteNoteFromDisk(id, event) {
+        if (event) event.stopPropagation();
+        if (!confirm('Are you sure you want to delete this saved note?')) return;
+
+        const notes = getStoredNotes();
+        delete notes[id];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+
+        if (currentDocId === id) {
+            currentDocId = null;
+        }
+        renderSavedNotesList();
+    }
+
+    function createNewNote() {
+        currentDocId = null;
+        const noteCount = Object.keys(getStoredNotes()).length + 1;
+        if (currentDocNameInput) {
+            currentDocNameInput.value = "New Note " + noteCount;
+        }
+        noteDocument.innerHTML = `
+            <div class="note-block"><h1 contenteditable="true">📌 NEW STUDY NOTE ${noteCount}</h1></div>
+            <div class="note-block"><p contenteditable="true">Start typing your new handwritten note here...</p></div>`;
+        saveState();
+        renderSavedNotesList();
+    }
+
+    function renderSavedNotesList() {
+        if (!savedNotesList) return;
+        const notes = getStoredNotes();
+        savedNotesList.innerHTML = '';
+
+        const keys = Object.keys(notes);
+        if (keys.length === 0) {
+            savedNotesList.innerHTML = `<div style="font-size:0.75rem; color: var(--text-muted); text-align:center; padding:6px;">No saved notes found.</div>`;
+            return;
+        }
+
+        keys.forEach(id => {
+            const item = notes[id];
+            const div = document.createElement('div');
+            div.className = `saved-item ${currentDocId === id ? 'active' : ''}`;
+            div.innerHTML = `
+                <span class="saved-item-title" title="${item.title}">${item.title}</span>
+                <div class="saved-item-actions">
+                    <button class="btn-icon btn-icon-danger" title="Delete Note">🗑️</button>
+                </div>`;
+
+            div.addEventListener('click', () => loadNoteFromDisk(id));
+            const deleteBtn = div.querySelector('.btn-icon-danger');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', (e) => deleteNoteFromDisk(id, e));
+            }
+            savedNotesList.appendChild(div);
+        });
+    }
+
+    // -------------------------------------------------------------
+    // UNDO / REDO HISTORY SYSTEM
+    // -------------------------------------------------------------
     saveState();
 
     function saveState() {
         if (isHistoryAction) return;
 
         const currentHTML = noteDocument.innerHTML;
-        // Don't save duplicate identical states
         if (undoStack.length > 0 && undoStack[undoStack.length - 1] === currentHTML) {
             return;
         }
@@ -128,7 +246,6 @@ echo "Net Primary Productivity: \${NPP} kcal/m²/yr"`
         undoStack.push(currentHTML);
         if (undoStack.length > MAX_HISTORY) undoStack.shift();
 
-        // Clear redo stack on new action
         redoStack.length = 0;
         updateUndoRedoUI();
     }
@@ -167,16 +284,14 @@ echo "Net Primary Productivity: \${NPP} kcal/m²/yr"`
 
     function restoreDocumentState(htmlContent) {
         noteDocument.innerHTML = htmlContent;
-        floatingToolbar.style.display = 'none';
+        if (floatingToolbar) floatingToolbar.style.display = 'none';
         activeBlock = null;
 
-        // Re-apply Prism formatting on restored code blocks
         if (window.Prism) {
             Prism.highlightAllUnder(noteDocument);
         }
     }
 
-    // Debounced text input tracking for undo history
     noteDocument.addEventListener('input', () => {
         clearTimeout(inputDebounceTimer);
         inputDebounceTimer = setTimeout(() => {
@@ -185,25 +300,36 @@ echo "Net Primary Productivity: \${NPP} kcal/m²/yr"`
     });
 
     // Style Controls Event Listeners
-    fontSelect.addEventListener('change', updateStyles);
-    inkSelect.addEventListener('change', updateStyles);
-    paperSelect.addEventListener('change', updateStyles);
+    if (fontSelect) fontSelect.addEventListener('change', updateStyles);
+    if (inkSelect) inkSelect.addEventListener('change', updateStyles);
+    if (paperSelect) paperSelect.addEventListener('change', updateStyles);
 
-    // Header Actions
-    document.getElementById('btnReset').addEventListener('click', () => location.reload());
-    document.getElementById('btnExportHtml').addEventListener('click', () => exportHTML(noteDocument));
-    document.getElementById('btnExportPdf').addEventListener('click', () => generatePDF(noteDocument, floatingToolbar));
-    
+    // Header Button Listeners
+    const btnExportHtml = document.getElementById('btnExportHtml');
+    const btnExportPdf = document.getElementById('btnExportPdf');
+    const btnSaveDoc = document.getElementById('btnSaveDoc');
+    const btnNewDoc = document.getElementById('btnNewDoc');
+
+    if (btnExportHtml) btnExportHtml.addEventListener('click', () => exportHTML(noteDocument));
+    if (btnExportPdf) btnExportPdf.addEventListener('click', () => generatePDF(noteDocument, floatingToolbar));
+    if (btnSaveDoc) btnSaveDoc.addEventListener('click', saveNoteToDisk);
+    if (btnNewDoc) btnNewDoc.addEventListener('click', createNewNote);
+
     if (btnUndo) btnUndo.addEventListener('click', undo);
     if (btnRedo) btnRedo.addEventListener('click', redo);
 
-    // Toolbar Actions
-    document.getElementById('btnMoveUp').addEventListener('click', () => moveBlock(-1));
-    document.getElementById('btnMoveDown').addEventListener('click', () => moveBlock(1));
-    document.getElementById('btnDeleteBlock').addEventListener('click', deleteBlock);
-    document.getElementById('imageUploader').addEventListener('change', handleImageUpload);
+    // Toolbar Move/Delete Actions
+    const btnMoveUp = document.getElementById('btnMoveUp');
+    const btnMoveDown = document.getElementById('btnMoveDown');
+    const btnDeleteBlock = document.getElementById('btnDeleteBlock');
+    const imageUploader = document.getElementById('imageUploader');
 
-    // Dynamic Language Switcher Listener
+    if (btnMoveUp) btnMoveUp.addEventListener('click', () => moveBlock(-1));
+    if (btnMoveDown) btnMoveDown.addEventListener('click', () => moveBlock(1));
+    if (btnDeleteBlock) btnDeleteBlock.addEventListener('click', deleteBlock);
+    if (imageUploader) imageUploader.addEventListener('change', handleImageUpload);
+
+    // Code Language Switcher
     document.addEventListener('change', (e) => {
         if (e.target && e.target.classList.contains('code-lang-select')) {
             const lang = e.target.value;
@@ -219,11 +345,10 @@ echo "Net Primary Productivity: \${NPP} kcal/m²/yr"`
         }
     });
 
-    // Keyboard Shortcuts (Ctrl+Z / Cmd+Z, Ctrl+Y / Cmd+Y, Tab Key)
+    // Shortcuts (Ctrl+S, Ctrl+Z, Ctrl+Y, Tab)
     document.addEventListener('keydown', (e) => {
         const isCmdOrCtrl = e.metaKey || e.ctrlKey;
 
-        // Shortcuts for Undo & Redo
         if (isCmdOrCtrl && e.key.toLowerCase() === 'z') {
             if (e.shiftKey) {
                 e.preventDefault();
@@ -235,14 +360,16 @@ echo "Net Primary Productivity: \${NPP} kcal/m²/yr"`
         } else if (isCmdOrCtrl && e.key.toLowerCase() === 'y') {
             e.preventDefault();
             redo();
+        } else if (isCmdOrCtrl && e.key.toLowerCase() === 's') {
+            e.preventDefault();
+            saveNoteToDisk();
         }
 
-        // Tab Key Indentation
         if (e.target && e.target.classList.contains('code-editor') && e.key === 'Tab') {
             e.preventDefault();
             const selection = window.getSelection();
             const range = selection.getRangeAt(0);
-            const tabNode = document.createTextNode('    '); // 4 Spaces
+            const tabNode = document.createTextNode('    ');
             range.insertNode(tabNode);
             range.setStartAfter(tabNode);
             range.setEndAfter(tabNode);
@@ -275,12 +402,13 @@ echo "Net Primary Productivity: \${NPP} kcal/m²/yr"`
             activeBlock = block;
             positionToolbar(block);
         } else if (!floatingToolbar.contains(e.target)) {
-            floatingToolbar.style.display = 'none';
+            if (floatingToolbar) floatingToolbar.style.display = 'none';
             activeBlock = null;
         }
     });
 
     function positionToolbar(block) {
+        if (!floatingToolbar) return;
         const rect = block.getBoundingClientRect();
         const canvasRect = canvasArea.getBoundingClientRect();
 
@@ -328,16 +456,55 @@ echo "Net Primary Productivity: \${NPP} kcal/m²/yr"`
 
     function insertRelative(type) {
         if (!activeBlock) return;
+
+        if (type === 'bullets') {
+            const targetList = activeBlock.querySelector('ul') || activeBlock.closest('ul');
+            if (targetList) {
+                const newLi = document.createElement('li');
+                newLi.contentEditable = "true";
+                newLi.innerText = "New bullet point...";
+                targetList.appendChild(newLi);
+                focusElement(newLi);
+                if (floatingToolbar) floatingToolbar.style.display = 'none';
+                saveState();
+                return;
+            }
+        }
+
         const newBlock = createBlockElement(type);
         activeBlock.parentNode.insertBefore(newBlock, activeBlock.nextSibling);
-        floatingToolbar.style.display = 'none';
+        if (floatingToolbar) floatingToolbar.style.display = 'none';
         saveState();
     }
 
     function appendBlock(type) {
+        if (type === 'bullets') {
+            const lists = noteDocument.querySelectorAll('ul');
+            if (lists.length > 0) {
+                const lastList = lists[lists.length - 1];
+                const newLi = document.createElement('li');
+                newLi.contentEditable = "true";
+                newLi.innerText = "New bullet point...";
+                lastList.appendChild(newLi);
+                focusElement(newLi);
+                saveState();
+                return;
+            }
+        }
+
         const newBlock = createBlockElement(type);
         noteDocument.appendChild(newBlock);
         saveState();
+    }
+
+    function focusElement(el) {
+        el.focus();
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        range.collapse(false);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
     }
 
     function moveBlock(direction) {
@@ -355,16 +522,17 @@ echo "Net Primary Productivity: \${NPP} kcal/m²/yr"`
     function deleteBlock() {
         if (activeBlock) {
             activeBlock.remove();
-            floatingToolbar.style.display = 'none';
+            if (floatingToolbar) floatingToolbar.style.display = 'none';
             activeBlock = null;
             saveState();
         }
     }
 
     function updateStyles() {
-        noteDocument.style.setProperty('--note-font', fontSelect.value);
-        noteDocument.style.setProperty('--note-ink', inkSelect.value);
-        noteDocument.className = `note-page ${paperSelect.value}`;
+        if (!noteDocument) return;
+        if (fontSelect) noteDocument.style.setProperty('--note-font', fontSelect.value);
+        if (inkSelect) noteDocument.style.setProperty('--note-ink', inkSelect.value);
+        if (paperSelect) noteDocument.className = `note-page ${paperSelect.value}`;
     }
 
     function handleImageUpload(e) {
@@ -392,5 +560,7 @@ echo "Net Primary Productivity: \${NPP} kcal/m²/yr"`
         saveState();
     }
 
+    // Initialize UI and render saved notes list on startup
     updateStyles();
+    renderSavedNotesList();
 });

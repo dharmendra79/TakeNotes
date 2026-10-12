@@ -3,50 +3,50 @@
  */
 
 function generatePDF(element, toolbar) {
-    if (!element) {
-        console.error('PDF Exporter Error: Note document container not found.');
-        return;
-    }
+  if (!element) {
+    console.error("PDF Exporter Error: Note document container not found.");
+    return;
+  }
 
-    if (toolbar) {
-        toolbar.style.display = 'none';
-    }
+  if (toolbar) {
+    toolbar.style.display = "none";
+  }
 
-    const options = {
-        margin: [0, 0, 0, 0],
-        filename: 'Handwritten_Notes.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: {
-            scale: 2,
-            useCORS: true,
-            logging: false,
-            letterRendering: true
-        },
-        jsPDF: {
-            unit: 'mm',
-            format: 'a4',
-            orientation: 'portrait'
-        },
-        pagebreak: { mode: ['css', 'legacy'] }
-    };
+  const options = {
+    margin: [0, 0, 0, 0],
+    filename: "Handwritten_Notes.pdf",
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      letterRendering: true,
+    },
+    jsPDF: {
+      unit: "mm",
+      format: "a4",
+      orientation: "portrait",
+    },
+    pagebreak: { mode: ["css", "legacy"] },
+  };
 
-    html2pdf()
-        .set(options)
-        .from(element)
-        .save()
-        .catch((err) => {
-            console.error('PDF Generation Failed:', err);
-        });
+  html2pdf()
+    .set(options)
+    .from(element)
+    .save()
+    .catch((err) => {
+      console.error("PDF Generation Failed:", err);
+    });
 }
 
 function exportHTML(element) {
-    if (!element) {
-        console.error('HTML Exporter Error: Note document container not found.');
-        return;
-    }
+  if (!element) {
+    console.error("HTML Exporter Error: Note document container not found.");
+    return;
+  }
 
-    const content = element.outerHTML;
-    const fullDocument = `<!DOCTYPE html>
+  const content = element.outerHTML;
+  const fullDocument = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -73,10 +73,10 @@ function exportHTML(element) {
 </body>
 </html>`;
 
-    const blob = new Blob([fullDocument], { type: 'text/html' });
-    const downloadLink = document.createElement('a');
-    downloadLink.href = URL.createObjectURL(blob);
-    downloadLink.download = 'handwritten_notes.html';
-    downloadLink.click();
-    URL.revokeObjectURL(downloadLink.href);
+  const blob = new Blob([fullDocument], { type: "text/html" });
+  const downloadLink = document.createElement("a");
+  downloadLink.href = URL.createObjectURL(blob);
+  downloadLink.download = "handwritten_notes.html";
+  downloadLink.click();
+  URL.revokeObjectURL(downloadLink.href);
 }
